@@ -28,6 +28,7 @@ js/views/calendar.js
 js/views/sidebar.js
 tests/                # node --test unit tests for pure modules
 docs/spec.md
+docs/test-case.md     # required test cases, traced to spec §8
 ```
 
 Keep this layout. If you add a module, add it here too.
@@ -65,6 +66,7 @@ The devcontainer (`.devcontainer/devcontainer.json`) currently has **neither Pyt
 
 ## Testing
 
+- **`docs/test-case.md` lists the required test cases** (unit, conformance, and end-to-end) with IDs traced to spec §8. Implement the automated ones in `tests/`, put the test ID in each test name, and run the matching `E-` cases for UI changes. Its §2 lists spec gaps and the assumptions the tests make; resolve them in `docs/spec.md` rather than guessing.
 - Unit-test the pure modules (`model.js`, `utils/date.js`, and the migration functions in `storage.js`) with Node's built-in test runner. Don't add test dependencies.
   ```sh
   node --test tests/
