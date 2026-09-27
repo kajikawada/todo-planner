@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="A to-do planner with due dates, a calendar, priorities, categories, and tags. Your data stays in this browser.">
+  <title>To-do Planner</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="module" src="js/main.js"></script>
+</head>
+<body data-view="list">
+  <a class="skip-link" href="#main">Skip to tasks</a>
+
+  <header class="app-header">
+    <button type="button" id="menu-button" class="icon-button menu-button" aria-label="Open filters" aria-expanded="false" aria-controls="sidebar">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <h1 class="app-title">To-do Planner</h1>
+    <div class="search">
+      <label for="search" class="visually-hidden">Search tasks</label>
+      <input id="search" type="search" placeholder="Search…" autocomplete="off" aria-keyshortcuts="/">
+    </div>
+    <div id="view-switch" class="view-switch" role="group" aria-label="View">
+      <button type="button" data-view="list" aria-pressed="true">List</button>
+      <button type="button" data-view="calendar" aria-pressed="false">Calendar</button>
+    </div>
+  </header>
+
+  <div id="banners" class="banners" aria-live="polite"></div>
+
+  <div class="layout">
+    <nav id="sidebar" class="sidebar" aria-label="Filters"></nav>
+    <div id="scrim" class="scrim" hidden></div>
+
+    <main id="main" class="main" tabindex="-1">
+      <form id="quick-add" class="quick-add" novalidate>
+        <label for="quick-add-input" class="visually-hidden">Add a task</label>
+        <input id="quick-add-input" class="text-input" type="text" autocomplete="off" placeholder="+ Add a task… (#tags ok)" aria-describedby="quick-add-hint" aria-keyshortcuts="n">
+        <p id="quick-add-hint" class="hint" aria-live="polite"></p>
+      </form>
+      <div id="filter-bar" class="filter-bar" hidden></div>
+      <section id="list-view" class="list-view" aria-label="Task list" tabindex="-1"></section>
+      <section id="calendar-view" class="calendar-view" aria-label="Calendar" tabindex="-1" hidden></section>
+    </main>
+  </div>
+
+  <div id="live" class="visually-hidden" aria-live="polite"></div>
+  <div id="toast-region" class="toast-region" aria-live="polite"></div>
+
+  <dialog id="edit-dialog" class="edit-dialog" aria-labelledby="edit-heading">
+    <form novalidate>
+      <h2 id="edit-heading">Edit task</h2>
+
+      <div class="field">
+        <label for="edit-title">Title</label>
+        <input id="edit-title" name="title" class="text-input" type="text" autocomplete="off">
+        <p id="edit-title-error" class="field-error" hidden></p>
+      </div>
+
+      <div class="field">
+        <label for="edit-notes">Notes</label>
+        <textarea id="edit-notes" name="notes" class="text-input" rows="4"></textarea>
+        <p id="edit-notes-error" class="field-error" hidden></p>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="edit-due">Due date</label>
+          <input id="edit-due" name="dueDate" class="text-input" type="date">
+          <p id="edit-dueDate-error" class="field-error" hidden></p>
+        </div>
+        <div class="field">
+          <label for="edit-priority">Priority</label>
+          <select id="edit-priority" name="priority" class="text-input">
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+          <p id="edit-priority-error" class="field-error" hidden></p>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="edit-category">Category</label>
+        <select id="edit-category" name="category" class="text-input"></select>
+        <p id="edit-category-error" class="field-error" hidden></p>
+      </div>
+
+      <div class="field">
+        <label for="edit-tags">Tags</label>
+        <input id="edit-tags" name="tags" class="text-input" type="text" autocomplete="off" data-hint="edit-tags-hint">
+        <p id="edit-tags-hint" class="hint">Separate tags with commas.</p>
+        <p id="edit-tags-error" class="field-error" hidden></p>
+      </div>
+
+      <div class="field checkbox-field">
+        <input id="edit-completed" name="completed" type="checkbox">
+        <label for="edit-completed">Completed</label>
+      </div>
+
+      <div class="dialog-actions">
+        <button type="button" class="button danger" data-action="delete">Delete</button>
+        <span class="spacer"></span>
+        <button type="button" class="button" data-action="cancel">Cancel</button>
+        <button type="submit" class="button primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>
