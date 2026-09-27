@@ -37,6 +37,7 @@ tests/                # node --test unit and conformance tests
 tests/helpers/        # shared fixtures (task builder, S1–S10 seed)
 docs/spec.md
 docs/test-case.md     # required test cases, traced to spec §8
+.github/workflows/pages.yml  # test, then deploy the app files to GitHub Pages on push to main
 ```
 
 Keep this layout. If you add a module, add it here too.
@@ -85,6 +86,10 @@ The devcontainer (`.devcontainer/devcontainer.json`) currently has **neither Pyt
 - Name test files `tests/<module>.test.js` and import with relative paths, e.g. `../js/model.js`.
 - Cover edge cases: empty or long titles, tag normalization, sort ties, month grids across month and year boundaries, and overdue exactly at midnight.
 - For UI changes, walk through the matching acceptance criteria in `docs/spec.md` §8 by hand in a browser, in both light and dark themes and at 360px width.
+
+## Deployment
+
+Pushing to `main` runs `.github/workflows/pages.yml`: it runs `node --test`, then publishes only `index.html`, `favicon.svg`, `css/`, and `js/` to GitHub Pages. All asset paths are relative, so the app works under the `/<repo>/` subpath. Repo setting: **Settings → Pages → Source: GitHub Actions**.
 
 ## Git workflow
 
