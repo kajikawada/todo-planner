@@ -17,18 +17,27 @@ A browser-only to-do planner with due dates, a calendar view, priorities, catego
 
 ```
 index.html
+favicon.svg
 css/styles.css
 js/main.js            # bootstrap, global event wiring
-js/store.js           # state, dispatch(action), subscribe(fn)
+js/store.js           # state, pure reduce(state, action), dispatch(action), subscribe(fn)
 js/storage.js         # localStorage load/save/migrate (only module touching storage)
 js/model.js           # pure: createTask, validateTask, filterTasks, sortTasks, groupTasks, parseQuickAdd
 js/utils/date.js      # pure date helpers (local YYYY-MM-DD)
-js/views/list.js
-js/views/calendar.js
-js/views/sidebar.js
-tests/                # node --test unit tests for pure modules
+js/views/list.js      # list view (grouped / sorted task rows)
+js/views/calendar.js  # month grid and selected-day panel
+js/views/sidebar.js   # status, categories (add/rename/delete), tags
+js/views/filters.js   # filter bar chips and "Clear all"
+js/views/task-row.js  # task row shared by list and day panel, row events
+js/views/dialog.js    # edit dialog
+js/views/header.js    # search, view switch, sidebar drawer
+js/views/notices.js   # toasts and banners
+js/views/dom.js       # h() element builder, icons, focus-keeping render
+tests/                # node --test unit and conformance tests
+tests/helpers/        # shared fixtures (task builder, S1–S10 seed)
 docs/spec.md
 docs/test-case.md     # required test cases, traced to spec §8
+.github/workflows/pages.yml  # test, then deploy the app files to GitHub Pages on push to main
 ```
 
 Keep this layout. If you add a module, add it here too.
@@ -58,6 +67,8 @@ python3 -m http.server 8000   # or: npx serve .
 # open http://localhost:8000
 ```
 
+Use `localhost` (or HTTPS), not a LAN IP over plain HTTP: `crypto.randomUUID()` only exists in secure contexts. `main.js` falls back to `crypto.getRandomValues()` when it's missing.
+
 The devcontainer (`.devcontainer/devcontainer.json`) currently has **neither Python nor Node**. When you need one, add a devcontainer feature and rebuild. For example:
 
 ```json
@@ -69,11 +80,16 @@ The devcontainer (`.devcontainer/devcontainer.json`) currently has **neither Pyt
 - **`docs/test-case.md` lists the required test cases** (unit, conformance, and end-to-end) with IDs traced to spec §8. Implement the automated ones in `tests/`, put the test ID in each test name, and run the matching `E-` cases for UI changes. Its §2 lists spec gaps and the assumptions the tests make; resolve them in `docs/spec.md` rather than guessing.
 - Unit-test the pure modules (`model.js`, `utils/date.js`, and the migration functions in `storage.js`) with Node's built-in test runner. Don't add test dependencies.
   ```sh
-  node --test tests/
+  node --test            # discovers tests/*.test.js
   ```
+  On Node 22+, `node --test tests/` does not work: the argument is treated as a file glob, not a directory. Use plain `node --test`, or `node --test 'tests/**/*.test.js'`.
 - Name test files `tests/<module>.test.js` and import with relative paths, e.g. `../js/model.js`.
 - Cover edge cases: empty or long titles, tag normalization, sort ties, month grids across month and year boundaries, and overdue exactly at midnight.
 - For UI changes, walk through the matching acceptance criteria in `docs/spec.md` §8 by hand in a browser, in both light and dark themes and at 360px width.
+
+## Deployment
+
+Pushing to `main` runs `.github/workflows/pages.yml`: it runs `node --test`, then publishes only `index.html`, `favicon.svg`, `css/`, and `js/` to GitHub Pages. All asset paths are relative, so the app works under the `/<repo>/` subpath. Repo setting: **Settings → Pages → Source: GitHub Actions**.
 
 ## Git workflow
 
@@ -84,7 +100,7 @@ The devcontainer (`.devcontainer/devcontainer.json`) currently has **neither Pyt
 ## Definition of done
 
 - [ ] The behavior matches `docs/spec.md`, and the spec is updated if behavior changed.
-- [ ] `node --test tests/` passes.
+- [ ] `node --test` passes.
 - [ ] No console errors or warnings during normal use.
 - [ ] Works with the keyboard alone, at 360px width, and in light and dark themes.
 - [ ] Data persists across a reload, and the stored schema is unchanged or migrated.
