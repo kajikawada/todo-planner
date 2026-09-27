@@ -15,11 +15,11 @@ This document lists every test the To-do Planner must pass before a change is co
 
 | Prefix  | Level                  | Target                                   | How it runs                       |
 |---------|------------------------|------------------------------------------|-----------------------------------|
-| `DT-`   | Unit                   | `js/utils/date.js`                       | `node --test tests/` (automated)  |
-| `MC-` `MV-` `MQ-` `MF-` `MS-` `MG-` `MD-` | Unit | `js/model.js`            | `node --test tests/` (automated)  |
-| `ST-`   | Unit                   | reducer in `js/store.js`                 | `node --test tests/` (automated)  |
-| `SG-`   | Unit                   | `js/storage.js` (mock `localStorage`)    | `node --test tests/` (automated)  |
-| `AR-`   | Static conformance     | source files under `js/`                 | `node --test tests/` (automated)  |
+| `DT-`   | Unit                   | `js/utils/date.js`                       | `node --test` (automated)  |
+| `MC-` `MV-` `MQ-` `MF-` `MS-` `MG-` `MD-` | Unit | `js/model.js`            | `node --test` (automated)  |
+| `ST-`   | Unit                   | reducer in `js/store.js`                 | `node --test` (automated)  |
+| `SG-`   | Unit                   | `js/storage.js` (mock `localStorage`)    | `node --test` (automated)  |
+| `AR-`   | Static conformance     | source files under `js/`                 | `node --test` (automated)  |
 | `E-*-`  | End-to-end (UI)        | the app in a real browser                | by hand or by a browser agent     |
 
 **Priority:** **P1** blocks release · **P2** must pass before the feature is "done" · **P3** nice to verify.
@@ -44,7 +44,7 @@ Put the test ID in each test name, e.g. `test('MQ-03 tag in the middle is remove
 - Run the date and model suites under several time zones. They must pass in all of them:
   ```sh
   for tz in UTC America/Los_Angeles Asia/Tokyo Pacific/Kiritimati Pacific/Pago_Pago America/New_York America/Santiago; do
-    TZ=$tz node --test tests/ || echo "FAILED in $tz"
+    TZ=$tz node --test || echo "FAILED in $tz"
   done
   ```
   `Pacific/Kiritimati` (UTC+14) and `Pacific/Pago_Pago` (UTC−11) catch UTC-vs-local bugs. `America/New_York` catches DST bugs. `America/Santiago` has DST changes at midnight, so some local days have no 00:00.
@@ -80,10 +80,12 @@ The spec names the model functions but not their signatures. The tests assume th
 | `sortTasks(tasks, sortKey)` | `sortKey` is `'default'`, `'priority'`, or `'created'`. Returns a new array. |
 | `groupTasks(tasks, today)` | Returns `[{ key, label, tasks }]` in the order overdue, today, upcoming, nodate, completed. Empty groups are left out. |
 | `dueStatus(task, today)` | Returns `'overdue'`, `'today'`, `'upcoming'`, `'none'`, or `'completed'`. |
-| `countByCategory(tasks, categories)` / `countByTag(tasks)` | Return counts of **active** tasks. |
-| date helpers | `toISODate(Date)`, `parseISODate(str)` → local-midnight `Date` or `null`, `isValidISODate(str)`, `compareDates(a, b)`, `addDays(str, n)`, `diffDays(a, b)`, `relativeLabel(due, today)`, `formatShort(str)`, `monthGrid(year, monthIndex0, weekStart)`. |
+| `countByCategory(tasks, categories)` / `countByTag(tasks)` | Return counts of **active** tasks. `countByCategory` returns `{ [name]: count }`; `countByTag` returns `[{ tag, count }]` in alphabetical order. |
+| `quickAddFields(text, filters)` | `parseQuickAdd` plus the inherited filters (§3.1): returns `{ title, tags, category, dueDate }`. |
+| `editTask(task, fields, now)` | Returns a new task with `fields` normalized and applied, `updatedAt = now`, and `completedAt` kept in step with `completed`. Doesn't validate. |
+| date helpers | `today(now: Date)`, `toISODate(Date)`, `parseISODate(str)` → local-midnight `Date` or `null`, `isValidISODate(str)`, `compareDates(a, b)`, `addDays(str, n)`, `diffDays(a, b)`, `relativeLabel(due, today)`, `formatShort(str)`, `monthGrid(year, monthIndex0, weekStart)`. |
 | reducer | `reduce(state, action)` is exported from `store.js` as a pure function, so it can be unit-tested. |
-| storage | `load(backend)`, `save(state, backend)`, `createSaver(backend, delayMs)`, `migrate(data)`. `backend` is an object with the `Storage` interface and defaults to `localStorage`. |
+| storage | `load(backend, { now, registry, target })` → `{ data, warning, backupKey }` with `warning` one of `null`, `'corrupt'`, `'unavailable'`, `'quota'`; `save(data, backend)` → `{ ok }` or `{ ok: false, error: 'quota' \| 'unavailable' }`; `createSaver(backend, delayMs, { write, onResult })` → `{ save, flush }`; `migrate(data, registry, target)`; `readData(backend)`; `loadUi` / `saveUi`. `backend` is an object with the `Storage` interface and defaults to `localStorage`. `registry` and `target` exist so tests can inject fake migrations. |
 
 ---
 
@@ -361,6 +363,7 @@ Categories for these tests: `['Work', 'Personal']`.
 | MQ-14 | P2 | `'Task #' + 'a'.repeat(31)` | `'Task #aaa…'` (31 a's), `[]` (A-04) |
 | MQ-15 | P2 | `'  Lots   of   space  '` | `'Lots   of   space'` (trimmed; inner spaces the user typed are kept) |
 | MQ-16 | P3 | `'Tag #日本語'` | `'Tag'`, `['日本語']` |
+| MQ-17 | P1 | `quickAddFields('Pack #bags', { status: 'completed', category: 'Work', tags: ['travel', 'urgent'], day: T, search: 'zzz' })` | `{ title: 'Pack', tags: ['bags', 'travel', 'urgent'], category: 'Work', dueDate: T }` (A-16) |
 
 ### 5.5 `dueStatus` (MD)
 
@@ -474,6 +477,8 @@ Each test deep-freezes the previous state, dispatches one action through `reduce
 | ST-21 | P2 | Toggle a tag filter twice | Added, then removed |
 | ST-22 | P2 | `clearFilters` | status `active`, category `null`, tags `[]`, day `null`, search `''` |
 | ST-23 | P1 | Any action | No action mutates its input (frozen state never throws) |
+| ST-24 | P2 | Delete the last task, then `undoDelete` | It goes back at the end |
+| ST-25 | P2 | `replaceData` (another tab) without the filtered category | The category filter is cleared |
 
 ---
 
@@ -504,6 +509,9 @@ Use an in-memory object that implements `getItem`, `setItem`, `removeItem`, `key
 | SG-19 | P2 | A migration throws | Treated as corrupt (backup, empty state, warning) |
 | SG-20 | P2 | `todo-planner:ui` holds bad JSON | UI state falls back to defaults; task data is unaffected; no backup is made for the UI key |
 | SG-21 | P2 | Unrelated keys in storage (`other-app:x`) | Never read, changed, or removed |
+| SG-22 | P1 | Corrupt value, and writing the backup throws | Warning `corrupt`, `backupKey: null`, and `todo-planner:v1` still holds the raw value (never lost) |
+| SG-23 | P2 | `readData` on valid, corrupt, and missing data | Data, `null`, `null`; no writes |
+| SG-24 | P2 | A task with an extra, unknown field | Same as SG-04 (exactly the 11 fields, §2.1) |
 
 When `migrate1to2` is added, also add tests with a real v1 fixture file in `tests/fixtures/` and assert the exact v2 output.
 

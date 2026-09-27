@@ -42,6 +42,8 @@ These may come later (see §9).
 - **`category`** is compared exactly and case-sensitively with the `categories` list.
 - **Tags** may not contain whitespace or commas. When tags are entered, a leading `#` is dropped, and empty entries are ignored. Duplicates are removed, keeping the first one.
 - **`completed` and `completedAt` must agree:** `completedAt` is set if and only if `completed` is `true`.
+- A stored task has exactly these 11 fields. A task with a missing or unknown field is invalid.
+
 ### 2.2 Persisted state
 
 Stored as JSON under the `localStorage` key **`todo-planner:v1`**:
@@ -96,6 +98,7 @@ If `todo-planner:ui` is missing or invalid, the defaults are used silently. No b
 - **Delete:** available from the edit dialog and from the task's row menu. It deletes right away and shows a toast with **Undo** for 5 seconds.
   - Undo puts the task back in its original position, with every field identical (including `id`, `createdAt`, and `updatedAt`).
   - Only the most recent deletion can be undone. Deleting another task while the toast is showing makes the earlier deletion final, and the toast now offers Undo for the new one.
+  - The 5-second timer pauses while the pointer is over the toast or keyboard focus is inside it, so keyboard users can reach **Undo**. After Undo, focus moves to the restored task.
   - After a delete, focus moves to the next task row, or to the previous one if there is no next, or to the list if it is now empty.
 
 ### 3.2 Due dates
@@ -138,17 +141,19 @@ If `todo-planner:ui` is missing or invalid, the defaults are used silently. No b
 - **Status filter:** All / Active / Completed. The default is Active.
 - **Other filters:** category (one), tags (any number; a task must have all selected tags), and a calendar day (see §3.6).
 - **Day filter:** selecting a day in the calendar sets the day filter. It shows as a removable chip and applies in both the List and Calendar views. Selecting the same day again, or removing its chip, clears it.
-- All active filters combine with **AND**. A filter bar shows the active filters as removable chips, plus a "Clear all" button.
+- All active filters combine with **AND**. A filter bar shows the active filters as removable chips, plus a "Clear all" button. The chips are: status (only when it isn't Active), category, each tag, day, and search text. The bar is hidden when no filter is active.
 - If no tasks match, the view shows an empty state with a "Clear filters" action.
 - "Clear all" and "Clear filters" reset every filter: status back to Active, no category, no tags, no day, and empty search.
 
 ### 3.6 Views
 - **List view (default):** the filtered, sorted tasks. With the default sort, tasks are grouped under the headings *Overdue*, *Today*, *Upcoming*, *No date*, and *Completed*, in that order. Empty groups are not shown. The other sorts show one ungrouped list.
+- The quick-add field at the top of the main area is shown in both views.
 - **Calendar view:** a month grid (Mon–Sun, a setting can change the first day of the week to Sunday).
   - The grid has the fewest full weeks that cover the month: 4, 5, or 6 rows. Days from the previous and next months fill the first and last rows and are styled as outside the month.
   - Previous/next month buttons, plus a "Today" button.
   - Each day cell lists the tasks due that day (priority dot + title). If a day has more than 3 tasks, it shows "+N more".
-  - Clicking a day selects it: a side or bottom panel lists that day's tasks and has a quick-add that sets `dueDate` to that day.
+  - Clicking a day selects it: a side or bottom panel lists that day's tasks and has a quick-add that sets `dueDate` to that day. Selecting a day from the previous or next month also moves the grid to that month.
+  - In the calendar the day filter drives the panel, not the grid: the grid keeps showing every day, and the selected day is highlighted.
   - Search, category, tag, and status filters also apply in the calendar.
   - Tasks with no due date don't appear in the calendar. The panel shows a note with how many were left out.
 
@@ -203,6 +208,7 @@ Calendar view
   - `↑`/`↓`: move between tasks in a list
   - `Enter`: edit the focused task
   - `Space`: toggle completion
+  - Each task row is one tab stop. Its checkbox and tag chips are not tab stops (use `Space` on the row, and the sidebar tag filters). The row's "More actions" menu button is a tab stop; its menu has **Edit** and **Delete**, and `Esc` closes it.
   - Arrow keys move between days in the calendar grid: ←/→ by one day, ↑/↓ by one week. Moving past the first or last day of the month switches the grid to that month. Enter or Space selects the focused day.
 - Shortcuts do nothing while the user is typing in a text field.
 - Focus is visible everywhere. The edit dialog traps focus and returns it to the task when it closes.
@@ -214,7 +220,8 @@ Calendar view
 - Only `js/storage.js` reads and writes `localStorage`.
 - Changes are saved after every state change, debounced by 200 ms, and flushed on `pagehide`.
 - **Corrupt data:** if parsing, validation (§2.2), or migration (§2.3) fails, the app copies the raw value to `todo-planner:backup-<timestamp>`, starts with empty state, and shows a non-blocking warning. An existing backup is never overwritten.
-- **Storage full** (`QuotaExceededError`): the app shows a persistent warning that changes may not be saved. It does not crash.
+- If the backup itself can't be written, the corrupt value is left in place, the app starts empty and doesn't save (so nothing is overwritten), and the warning says so.
+- **Storage full** (`QuotaExceededError`): the app shows a persistent warning that changes may not be saved. It does not crash. The warning goes away after a later save succeeds.
 - **Storage unavailable** (private mode or blocked): the app runs in memory and shows a banner.
 - **Multiple tabs:** listen for the `storage` event and reload state when another tab writes (the last write wins).
   - An open edit dialog keeps its draft when another tab writes. Saving it overwrites that task (last write wins).
